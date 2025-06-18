@@ -26,13 +26,15 @@ export function NoteList({
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
 
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(notes.map((n) => n.category)));
-    return ["All", ...cats.filter(Boolean)];
+    const cats = notes.flatMap((n) => n.categories || []);
+    return ["All", ...Array.from(new Set(cats)).filter(Boolean)];
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
     if (categoryFilter === "All") return notes;
-    return notes.filter((n) => n.category === categoryFilter);
+    return notes.filter(
+      (n) => n.categories && n.categories.includes(categoryFilter)
+    );
   }, [notes, categoryFilter]);
 
   const handleEdit = (note: Note) => {
