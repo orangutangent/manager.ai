@@ -1,103 +1,173 @@
-import Image from "next/image";
+"use client";
+import React, { useState } from "react";
+
+import { ModalInput } from "@/components/ModalInput/ui/ModalInput";
+import { Tab } from "@headlessui/react";
+import { Plus, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Task } from "@prisma/client";
+import { Note } from "@prisma/client";
+import { TaskList } from "@/components/TaskList";
+import { NoteList } from "@/components/NoteList";
+import { toast } from "sonner";
+import { useTasks, useDeleteTask } from "@/components/TaskCard";
+import { useNotes, useDeleteNote } from "@/components/NoteCard";
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const { tasks, isLoading: isTasksLoading } = useTasks();
+  const { notes, isLoading: isNotesLoading } = useNotes();
+  const { deleteTask, isDeleting: isTaskDeleting } = useDeleteTask();
+  const { deleteNote, isDeleting: isNoteDeleting } = useDeleteNote();
+
+  const loading =
+    isTasksLoading || isNotesLoading || isTaskDeleting || isNoteDeleting;
+
+  const handleTaskAdded = async () => {};
+
+  const handleNoteAdded = async () => {};
+
+  const handleDeleteTask = async (task: Task) => {
+    try {
+      await deleteTask(task.id);
+      toast.success("Task deleted");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Task deletion error"
+      );
+    }
+  };
+
+  const handleChangeTaskStatus = async (task: Task) => {
+    try {
+      const newStatus =
+        task.status === "TODO"
+          ? "IN_PROGRESS"
+          : task.status === "IN_PROGRESS"
+          ? "DONE"
+          : "TODO";
+
+      // You can implement useUpdateTask and call it here
+      // For now, using fetch, but better to move to data-access
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update task status");
+      }
+
+      toast.success("Task status updated");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Task status update error"
+      );
+    }
+  };
+
+  const handleDeleteNote = async (note: Note) => {
+    try {
+      await deleteNote(note.id);
+      toast.success("Note deleted");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Note deletion error"
+      );
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Sparkles className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Task Manager</h1>
+              <p className="text-gray-600">
+                AI-powered assistant for managing tasks
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <Plus className="h-5 w-5" />
+            Add
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
+          <Tab.List className="flex space-x-1 rounded-xl bg-white p-1 shadow-sm border border-gray-200">
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200",
+                  "ring-white ring-opacity-60 ring-offset-2 focus:outline-none focus:ring-2",
+                  selected
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                )
+              }
+            >
+              Tasks ({tasks?.length || 0})
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200",
+                  "ring-white ring-opacity-60 ring-offset-2 focus:outline-none focus:ring-2",
+                  selected
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                )
+              }
+            >
+              Notes ({notes?.length || 0})
+            </Tab>
+          </Tab.List>
+          <Tab.Panels className="mt-6">
+            <Tab.Panel>
+              <TaskList
+                tasks={tasks || []}
+                onAddTask={() => setIsModalOpen(true)}
+                onDeleteTask={handleDeleteTask}
+                onChangeStatus={handleChangeTaskStatus}
+                isLoading={loading}
+              />
+            </Tab.Panel>
+            <Tab.Panel>
+              <NoteList
+                notes={notes || []}
+                onAddNote={() => setIsModalOpen(true)}
+                onDeleteNote={handleDeleteNote}
+                isLoading={loading}
+              />
+            </Tab.Panel>
+          </Tab.Panels>
+        </Tab.Group>
+      </div>
+      <ModalInput
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onTaskAdded={handleTaskAdded}
+        onNoteAdded={handleNoteAdded}
+        placeholder="Enter a task or note..."
+      />
+    </main>
   );
 }
