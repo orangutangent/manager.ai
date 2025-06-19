@@ -14,6 +14,7 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void;
   placeholder?: string;
   className?: string;
+  label?: string;
 }
 
 export const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -22,8 +23,15 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   onChange,
   placeholder = "Select categories...",
   className = "",
+  label,
 }) => {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownDirection, setDropdownDirection] = useState<"down" | "up">(
+    "down"
+  );
   const filtered = useMemo(
     () =>
       query.trim() === ""
@@ -34,12 +42,53 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     [options, query]
   );
 
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownMaxHeight = 240;
+      let direction: "down" | "up" = "down";
+      if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+        direction = "up";
+      }
+      setDropdownDirection(direction);
+    }
+  }, [open]);
+
   return (
     <div className={`relative w-72 ${className}`}>
+      {label && (
+        <label className="block mb-1 text-sm font-medium text-gray-700 select-none">
+          {label}
+        </label>
+      )}
       <Listbox value={value} onChange={onChange} multiple>
-        {({ open }) => (
+        {({ open }: { open: boolean }) => (
           <div>
-            <Listbox.Button className="w-full min-h-[40px] bg-white border border-gray-300 rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex flex-wrap gap-2 items-center text-gray-900">
+            <Listbox.Button
+              as="button"
+              ref={buttonRef}
+              className="w-full min-h-[40px] bg-white border border-gray-300 rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex flex-wrap gap-2 items-center text-gray-900"
+            >
               {value.length === 0 ? (
                 <span className="text-gray-400">{placeholder}</span>
               ) : (
@@ -75,7 +124,13 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             >
               <Listbox.Options
                 as="div"
-                className="absolute z-10 mt-2 w-full max-h-60 overflow-auto rounded-lg bg-white py-2 shadow-lg border border-gray-200 focus:outline-none"
+                ref={dropdownRef}
+                className={`absolute left-0 w-full rounded-lg bg-white py-2 shadow-lg border border-gray-200 focus:outline-none overflow-auto animate-fade-in z-50 ${
+                  dropdownDirection === "up"
+                    ? "bottom-full mb-2"
+                    : "top-full mt-2"
+                }`}
+                style={{ maxHeight: 240 }}
               >
                 <div className="px-2 pb-2">
                   <Input
@@ -131,6 +186,7 @@ interface CustomSelectProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  label?: string;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -140,26 +196,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = "Выберите...",
   className = "",
   disabled = false,
+  label,
 }) => {
   const selectedOption = options.find((opt) => opt.value === value);
-  const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
-  // Закрытие по клику вне
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  useEffect(() => {
-    if (open && buttonRef.current) {
+    if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setDropdownStyle({
         position: "fixed",
@@ -167,12 +214,30 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         top: rect.bottom + 4,
         width: rect.width,
         zIndex: 9999,
+        maxHeight: 240,
       });
     }
+    const handleClick = (e: MouseEvent) => {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
   return (
     <div className={`relative w-16 min-w-[64px] ${className}`}>
+      {label && (
+        <label className="block mb-1 text-sm font-medium text-gray-700 select-none">
+          {label}
+        </label>
+      )}
       <button
         ref={buttonRef}
         type="button"
@@ -195,7 +260,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         typeof window !== "undefined" &&
         ReactDOM.createPortal(
           <div
-            className="rounded-lg bg-white py-2 shadow-lg border border-gray-200 focus:outline-none max-h-60 overflow-auto animate-fade-in"
+            ref={dropdownRef}
+            className="rounded-lg bg-white py-2 shadow-lg border border-gray-200 focus:outline-none overflow-auto animate-fade-in"
             style={dropdownStyle}
           >
             {options.map((opt) => (

@@ -5,7 +5,7 @@ export interface ModalProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  title?: string;
+  title?: React.ReactNode;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -25,7 +25,7 @@ export const Modal: React.FC<ModalProps> = ({
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
-        <div className="fixed inset-0 bg-black bg-opacity-25" />
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-sm" />
       </Transition.Child>
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
@@ -38,12 +38,13 @@ export const Modal: React.FC<ModalProps> = ({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+            <Dialog.Panel className="transform xl:w-[30rem] overflow-hidden rounded-2xl bg-white p-6 sm:p-4 xs:p-2 text-left align-middle shadow-xl transition-all overflow-y-auto max-h-[90vh]">
               {title && (
-                <Dialog.Title className="text-lg font-medium mb-2">
+                <Dialog.Title className="text-xl font-bold ms-4 mb-3 text-gray-900">
                   {title}
                 </Dialog.Title>
               )}
+
               {children}
             </Dialog.Panel>
           </Transition.Child>

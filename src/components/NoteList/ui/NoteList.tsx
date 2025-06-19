@@ -59,9 +59,9 @@ export function NoteList({
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row md:items-center items-start gap-2">
           <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
-          <div className="ml-4 min-w-[180px]">
+          <div className=" min-w-[180px]">
             <MultiSelect
               options={categories}
               value={categoryFilter}
