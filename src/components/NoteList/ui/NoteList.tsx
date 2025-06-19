@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Note } from "@prisma/client";
 import { EditNoteModal } from "@/components/NoteCard/ui/EditNoteModal";
 import { useState, useMemo } from "react";
+import { MultiSelect } from "@/components/ui";
 
 export interface NoteListProps {
   notes: Note[];
@@ -23,17 +24,18 @@ export function NoteList({
 }: NoteListProps) {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("All");
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
   const categories = useMemo(() => {
     const cats = notes.flatMap((n) => n.categories || []);
-    return ["All", ...Array.from(new Set(cats)).filter(Boolean)];
+    return Array.from(new Set(cats)).filter(Boolean);
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
-    if (categoryFilter === "All") return notes;
+    if (!categoryFilter.length) return notes;
     return notes.filter(
-      (n) => n.categories && n.categories.includes(categoryFilter)
+      (n) =>
+        n.categories && categoryFilter.some((cat) => n.categories.includes(cat))
     );
   }, [notes, categoryFilter]);
 
@@ -59,17 +61,15 @@ export function NoteList({
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-0">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
-          <select
-            className="ml-4 border rounded px-2 py-1 text-sm"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          <div className="ml-4 min-w-[180px]">
+            <MultiSelect
+              options={categories}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              placeholder="Фильтр по категориям..."
+              className="min-w-[180px]"
+            />
+          </div>
         </div>
         <Button onClick={onAddNote} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />

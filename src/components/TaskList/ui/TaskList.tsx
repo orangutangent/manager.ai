@@ -4,7 +4,7 @@ import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { TaskCard } from "@/components/TaskCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Task, Status } from "@prisma/client";
+import { Task, Status, Priority } from "@prisma/client";
 import { EditTaskModal } from "@/components/TaskCard/ui/EditTaskModal";
 import {
   DragDropContext,
@@ -13,6 +13,8 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 import { ConfirmDeleteModal } from "@/components/TaskCard/ui/ConfirmDeleteModal";
+import { MultiSelect } from "@/components/ui";
+import { useTasks } from "@/components/TaskCard/data-access/taskApi";
 
 export interface TaskListProps {
   tasks: Task[];
@@ -22,10 +24,34 @@ export interface TaskListProps {
   isLoading?: boolean;
 }
 
-const STATUS_COLUMNS: { key: Status; title: string; color: string }[] = [
-  { key: "TODO", title: "To Do", color: "border-gray-300" },
-  { key: "IN_PROGRESS", title: "In Progress", color: "border-blue-300" },
-  { key: "DONE", title: "Done", color: "border-green-300" },
+const STATUS_COLUMNS: {
+  key: Status;
+  title: string;
+  color: string;
+  bg: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    key: "TODO",
+    title: "To Do",
+    color: "border-gray-200",
+    bg: "bg-gradient-to-b from-gray-50 to-blue-50",
+    icon: <span className="text-gray-400">📋</span>,
+  },
+  {
+    key: "IN_PROGRESS",
+    title: "In Progress",
+    color: "border-blue-200",
+    bg: "bg-gradient-to-b from-blue-50 to-blue-100",
+    icon: <span className="text-blue-400">▶️</span>,
+  },
+  {
+    key: "DONE",
+    title: "Done",
+    color: "border-green-200",
+    bg: "bg-gradient-to-b from-green-50 to-green-100",
+    icon: <span className="text-green-400">✅</span>,
+  },
 ];
 
 export function TaskList({
@@ -44,17 +70,21 @@ export function TaskList({
   });
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("All");
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const { mutate } = useTasks();
 
   const categories = useMemo(() => {
     const cats = tasks.flatMap((t) => t.categories || []);
-    return ["All", ...Array.from(new Set(cats)).filter(Boolean)];
+    return Array.from(new Set(cats)).filter(Boolean);
   }, [tasks]);
 
   const filteredTasks = useMemo(() => {
-    if (categoryFilter === "All") return tasks;
+    if (!categoryFilter.length) return tasks;
     return tasks.filter(
-      (t) => t.categories && t.categories.includes(categoryFilter)
+      // (t) =>
+      //   t.categories &&
+      //   categoryFilter.every((cat) => t.categories.includes(cat))
+      (t) => categoryFilter.some((cat) => t.categories?.includes(cat))
     );
   }, [tasks, categoryFilter]);
 
@@ -96,21 +126,37 @@ export function TaskList({
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4 flex-wrap">
           <h2 className="text-2xl font-bold text-gray-900">Tasks</h2>
-          <select
-            className="ml-4 border rounded px-2 py-1 text-sm"
+          <MultiSelect
+            options={categories}
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            onChange={setCategoryFilter}
+            placeholder="Filter by categories..."
+            className="min-w-[220px]"
+          />
         </div>
-        <Button onClick={onAddTask} className="flex items-center gap-2">
+        <Button
+          onClick={() => {
+            // Пример временной задачи (можно доработать под твой UI)
+            const tempTask = {
+              id: "temp-" + Date.now(),
+              title: "Новая задача...",
+              description: "",
+              status: "TODO" as Status,
+              priority: "MEDIUM" as Priority,
+              categories: [],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              dueTime: null,
+              difficulty: 1,
+              isPending: true,
+            };
+            mutate((tasks = []) => [tempTask, ...tasks], false);
+            onAddTask();
+          }}
+          className="flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" />
           Add Task
         </Button>
@@ -123,10 +169,11 @@ export function TaskList({
             {STATUS_COLUMNS.map((col) => (
               <div
                 key={col.key}
-                className={`rounded-lg border-2 ${col.color} bg-gray-50 p-2 flex flex-col min-h-[200px]`}
+                className={`rounded-2xl border ${col.color} ${col.bg} shadow-md p-3 flex flex-col min-h-[300px] max-h-[70vh] transition-all duration-200`}
+                style={{ minWidth: 0 }}
               >
                 <button
-                  className="flex items-center gap-2 mb-2 w-full text-left"
+                  className="flex items-center gap-2 mb-3 w-full text-left px-1 py-1 rounded-xl hover:bg-white/40 transition"
                   onClick={() =>
                     setOpenColumns((prev) => ({
                       ...prev,
@@ -135,14 +182,23 @@ export function TaskList({
                   }
                 >
                   {openColumns[col.key] ? (
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
                   ) : (
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
                   )}
-                  <span className="font-semibold text-gray-700">
+                  <span className="font-semibold text-base flex items-center gap-2 text-gray-900 px-2 py-1 rounded-lg bg-white/80 border border-gray-200 shadow-sm">
+                    {col.icon}
                     {col.title}
                   </span>
-                  <span className="ml-auto text-xs text-gray-400">
+                  <span
+                    className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      col.key === "DONE"
+                        ? "bg-green-100 text-green-700"
+                        : col.key === "IN_PROGRESS"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
                     {grouped[col.key].length}
                   </span>
                 </button>
@@ -151,11 +207,12 @@ export function TaskList({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`space-y-3 transition-all duration-200 ${
+                      className={`space-y-3 flex-1 overflow-y-auto custom-scrollbar transition-all duration-200 ${
                         openColumns[col.key]
-                          ? "max-h-[1000px]"
+                          ? "max-h-[60vh] min-h-[100px]"
                           : "max-h-0 overflow-hidden"
                       }`}
+                      style={{ minWidth: 0 }}
                     >
                       <AnimatePresence>
                         {openColumns[col.key] &&

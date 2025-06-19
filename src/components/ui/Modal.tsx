@@ -14,10 +14,10 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   title,
 }) => (
-  <Transition show={open} as={React.Fragment}>
+  <Transition show={open} as="div">
     <Dialog as="div" className="relative z-50" onClose={onClose}>
       <Transition.Child
-        as={React.Fragment}
+        as="div"
         enter="ease-out duration-300"
         enterFrom="opacity-0"
         enterTo="opacity-100"
@@ -30,7 +30,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
           <Transition.Child
-            as={React.Fragment}
+            as="div"
             enter="ease-out duration-300"
             enterFrom="opacity-0 scale-95"
             enterTo="opacity-100 scale-100"

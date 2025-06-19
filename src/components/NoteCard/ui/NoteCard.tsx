@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
-import { Edit2, Trash2, Eye, FileText } from "lucide-react";
+import { Edit2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { Note } from "@prisma/client";
 import { useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment } from "react";
+import { DocumentTextIcon } from "@heroicons/react/24/solid";
 
 export interface NoteCardProps {
   note: Note;
@@ -24,45 +24,46 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
     <>
       <motion.div
         layout
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        whileHover={{ y: -2 }}
-        className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-all duration-200 border border-gray-100"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        whileHover={{ scale: 1.03, boxShadow: "0 8px 32px 0 rgba(0,0,0,0.08)" }}
+        className="bg-white/90 rounded-2xl shadow-md p-6 border border-gray-100 hover:shadow-xl transition-all duration-200 cursor-pointer group"
+        onClick={() => setIsDetailModalOpen(true)}
       >
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-500" />
-            <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-blue-50 rounded-xl">
+            <DocumentTextIcon className="h-7 w-7 text-blue-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900 line-clamp-1 mb-1">
               {note.title}
             </h3>
-            {Array.isArray(note.categories) && note.categories.length > 0 && (
-              <div className="flex flex-wrap gap-1 ml-2">
-                {note.categories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium"
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            )}
+            <p className="text-gray-600 mb-2 line-clamp-3 leading-relaxed">
+              {note.content || "No content"}
+            </p>
+            <div className="flex items-center gap-4 text-xs text-gray-400 mb-1">
+              <span>
+                {format(note.createdAt, "d MMMM yyyy", { locale: enUS })}
+              </span>
+              {note.content && (
+                <>
+                  <span>•</span>
+                  <span>{wordCount} words</span>
+                  <span>•</span>
+                  <span>{charCount} chars</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex flex-col gap-1 ml-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsDetailModalOpen(true)}
-              className="p-1 hover:bg-blue-50"
-              title="Details"
-            >
-              <Eye className="h-4 w-4 text-blue-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(note)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(note);
+              }}
               className="p-1 hover:bg-gray-50"
               title="Edit"
             >
@@ -71,7 +72,10 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(note)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(note);
+              }}
               className="p-1 hover:bg-red-50"
               title="Delete"
             >
@@ -79,47 +83,29 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
             </Button>
           </div>
         </div>
-
-        <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-          {note.content || "No content"}
-        </p>
-
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span>
-              {format(note.createdAt, "d MMMM yyyy", { locale: enUS })}
-            </span>
-            {note.content && (
-              <>
-                <span>•</span>
-                <span>{wordCount} words</span>
-                <span>•</span>
-                <span>{charCount} chars</span>
-              </>
-            )}
+        {Array.isArray(note.categories) && note.categories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100">
+            {note.categories.map((cat) => (
+              <span
+                key={cat}
+                className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium border border-purple-200"
+              >
+                {cat}
+              </span>
+            ))}
           </div>
-          {note.content && note.content.length > 150 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsDetailModalOpen(true)}
-              className="text-xs text-blue-600 hover:text-blue-700"
-            >
-              Read more
-            </Button>
-          )}
-        </div>
+        )}
       </motion.div>
 
       {/* Detail Modal */}
-      <Transition appear show={isDetailModalOpen} as={Fragment}>
+      <Transition appear show={isDetailModalOpen} as="div">
         <Dialog
           as="div"
           className="relative z-50"
           onClose={() => setIsDetailModalOpen(false)}
         >
           <Transition.Child
-            as={Fragment}
+            as="div"
             enter="ease-out duration-300"
             enterFrom="opacity-0"
             enterTo="opacity-100"
@@ -133,7 +119,7 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center">
               <Transition.Child
-                as={Fragment}
+                as="div"
                 enter="ease-out duration-300"
                 enterFrom="opacity-0 scale-95"
                 enterTo="opacity-100 scale-100"

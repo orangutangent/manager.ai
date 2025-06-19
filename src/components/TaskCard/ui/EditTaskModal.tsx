@@ -1,10 +1,12 @@
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Task, Status, Priority } from "@prisma/client";
 import { useUpdateTask } from "../data-access/useUpdateTask";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui";
+import { Listbox } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 
 interface EditTaskModalProps {
   open: boolean;
@@ -63,10 +65,10 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
   };
 
   return (
-    <Transition appear show={open} as={Fragment}>
+    <Transition appear show={open} as="div">
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         <Transition.Child
-          as={Fragment}
+          as="div"
           enter="ease-out duration-300"
           enterFrom="opacity-0"
           enterTo="opacity-100"
@@ -79,7 +81,7 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             <Transition.Child
-              as={Fragment}
+              as="div"
               enter="ease-out duration-300"
               enterFrom="opacity-0 scale-95"
               enterTo="opacity-100 scale-100"
@@ -87,73 +89,158 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-3xl bg-white p-10 text-left align-middle shadow-2xl transition-all">
                 <Dialog.Title
                   as="h3"
                   className="text-lg font-medium leading-6 text-gray-900 mb-4"
                 >
                   Edit Task
                 </Dialog.Title>
-                <div className="space-y-4">
+                <div className="space-y-4 w-[30rem]">
                   <Input
-                    className="w-full border rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:border-blue-400"
+                    label="Title"
                     placeholder="Title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    inputSize="md"
+                    className="mb-2"
                   />
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-[80px] bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:border-blue-400"
+                  <Input
+                    as="textarea"
+                    label="Description"
                     placeholder="Description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    inputSize="md"
+                    className="mb-2 min-h-[80px]"
                   />
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <label className="block text-xs mb-1">Priority</label>
-                      <select
-                        className="w-full border rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring focus:border-blue-400"
-                        value={priority}
-                        onChange={(e) =>
-                          setPriority(e.target.value as Priority)
-                        }
-                      >
-                        <option value={Priority.LOW}>Low</option>
-                        <option value={Priority.MEDIUM}>Medium</option>
-                        <option value={Priority.HIGH}>High</option>
-                      </select>
+                      <Listbox value={priority} onChange={setPriority}>
+                        <div className="relative">
+                          <Listbox.Button className="relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900">
+                            <span className="block truncate text-gray-900">
+                              {priority}
+                            </span>
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                              <ChevronUpDownIcon className="h-5 w-5 text-gray-400" />
+                            </span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            as="div"
+                            className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200"
+                          >
+                            {[Priority.LOW, Priority.MEDIUM, Priority.HIGH].map(
+                              (p) => (
+                                <Listbox.Option
+                                  key={p}
+                                  value={p}
+                                  className={({ active }) =>
+                                    `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
+                                      active
+                                        ? "bg-blue-50 text-blue-900"
+                                        : "text-gray-900"
+                                    }`
+                                  }
+                                >
+                                  {({ selected }) => (
+                                    <>
+                                      <span
+                                        className={`block truncate ${
+                                          selected ? "font-semibold" : ""
+                                        }`}
+                                      >
+                                        {p}
+                                      </span>
+                                      {selected ? (
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                          <CheckIcon className="h-5 w-5" />
+                                        </span>
+                                      ) : null}
+                                    </>
+                                  )}
+                                </Listbox.Option>
+                              )
+                            )}
+                          </Listbox.Options>
+                        </div>
+                      </Listbox>
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs mb-1">Status</label>
-                      <select
-                        className="w-full border rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring focus:border-blue-400"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as Status)}
-                      >
-                        <option value={Status.TODO}>To Do</option>
-                        <option value={Status.IN_PROGRESS}>In Progress</option>
-                        <option value={Status.DONE}>Done</option>
-                      </select>
+                      <Listbox value={status} onChange={setStatus}>
+                        <div className="relative">
+                          <Listbox.Button className="relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900">
+                            <span className="block truncate text-gray-900">
+                              {status}
+                            </span>
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                              <ChevronUpDownIcon className="h-5 w-5 text-gray-400" />
+                            </span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            as="div"
+                            className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200"
+                          >
+                            {[Status.TODO, Status.IN_PROGRESS, Status.DONE].map(
+                              (s) => (
+                                <Listbox.Option
+                                  key={s}
+                                  value={s}
+                                  className={({ active }) =>
+                                    `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
+                                      active
+                                        ? "bg-blue-50 text-blue-900"
+                                        : "text-gray-900"
+                                    }`
+                                  }
+                                >
+                                  {({ selected }) => (
+                                    <>
+                                      <span
+                                        className={`block truncate ${
+                                          selected ? "font-semibold" : ""
+                                        }`}
+                                      >
+                                        {s}
+                                      </span>
+                                      {selected ? (
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                          <CheckIcon className="h-5 w-5" />
+                                        </span>
+                                      ) : null}
+                                    </>
+                                  )}
+                                </Listbox.Option>
+                              )
+                            )}
+                          </Listbox.Options>
+                        </div>
+                      </Listbox>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <label className="block text-xs mb-1">Difficulty</label>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         max={5}
-                        className="w-full border rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:border-blue-400"
+                        label="Difficulty"
                         value={difficulty}
                         onChange={(e) => setDifficulty(Number(e.target.value))}
+                        inputSize="md"
                       />
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs mb-1">Due Time</label>
-                      <input
+                      <Input
                         type="datetime-local"
-                        className="w-full border rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring focus:border-blue-400"
+                        label="Due Time"
                         value={dueTime}
                         onChange={(e) => setDueTime(e.target.value)}
+                        inputSize="md"
                       />
                     </div>
                   </div>
@@ -161,8 +248,8 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
                     <label className="block text-xs mb-1">
                       Categories (comma separated)
                     </label>
-                    <input
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                    <Input
+                      label="Categories (comma separated)"
                       placeholder="work, meeting, finance"
                       value={categories.join(", ")}
                       onChange={(e) =>
@@ -173,6 +260,7 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
                             .filter(Boolean)
                         )
                       }
+                      inputSize="md"
                     />
                     <div className="mt-1 flex flex-wrap gap-1">
                       {categories.map((cat) => (

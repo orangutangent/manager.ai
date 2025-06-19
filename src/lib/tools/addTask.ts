@@ -7,6 +7,7 @@ const AddTaskSchema = z.object({
   description: z.string().optional(),
   priority: z.nativeEnum(Priority).default(Priority.MEDIUM),
   categories: z.array(z.string()).optional(),
+  dueTime: z.coerce.date().optional(),
 });
 
 export type AddTaskInput = z.infer<typeof AddTaskSchema>;
@@ -21,6 +22,7 @@ export async function addTask(input: AddTaskInput) {
       priority: validatedInput.priority,
       status: Status.TODO,
       categories: validatedInput.categories || [],
+      dueTime: validatedInput.dueTime,
     },
   });
 }

@@ -12,6 +12,7 @@ import { NoteList } from "@/components/NoteList";
 import { toast } from "sonner";
 import { useTasks, useDeleteTask } from "@/components/TaskCard";
 import { useNotes, useDeleteNote } from "@/components/NoteCard";
+import { useUpdateTask } from "@/components/TaskCard/data-access/useUpdateTask";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
@@ -21,15 +22,25 @@ export default function Home() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { tasks, isLoading: isTasksLoading } = useTasks();
+  const { tasks, isLoading: isTasksLoading, mutate: mutateTasks } = useTasks();
   const { notes, isLoading: isNotesLoading } = useNotes();
   const { deleteTask, isDeleting: isTaskDeleting } = useDeleteTask();
   const { deleteNote, isDeleting: isNoteDeleting } = useDeleteNote();
+  const { updateTask } = useUpdateTask();
+  const [localTasks, setLocalTasks] = useState<Task[] | undefined>(undefined);
+
+  // Синхронизируем локальные задачи с серверными
+  React.useEffect(() => {
+    if (tasks) setLocalTasks(tasks);
+  }, [tasks]);
 
   const loading =
     isTasksLoading || isNotesLoading || isTaskDeleting || isNoteDeleting;
 
-  const handleTaskAdded = async () => {};
+  const handleTaskAdded = (tempTask: Task) => {
+    setLocalTasks((prev) => [tempTask, ...(prev || [])]);
+    setIsModalOpen(false);
+  };
 
   const handleNoteAdded = async () => {};
 
@@ -44,32 +55,24 @@ export default function Home() {
     }
   };
 
-  const handleChangeTaskStatus = async (task: Task) => {
+  // Optimistic update для dnd
+  const handleChangeTaskStatus = async (
+    task: Task,
+    newStatus: Task["status"]
+  ) => {
+    if (!localTasks) return;
+    // Сохраняем старое состояние для отката
+    const prevTasks = [...localTasks];
+    // Мгновенно меняем статус локально
+    setLocalTasks((prev) =>
+      prev?.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+    );
     try {
-      const newStatus =
-        task.status === "TODO"
-          ? "IN_PROGRESS"
-          : task.status === "IN_PROGRESS"
-          ? "DONE"
-          : "TODO";
-
-      // You can implement useUpdateTask and call it here
-      // For now, using fetch, but better to move to data-access
-      const response = await fetch(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update task status");
-      }
-
+      await updateTask({ id: task.id, data: { status: newStatus } });
+      mutateTasks(); // обновить из сети, если надо
       toast.success("Task status updated");
     } catch (error) {
+      setLocalTasks(prevTasks); // откат
       toast.error(
         error instanceof Error ? error.message : "Task status update error"
       );
@@ -109,6 +112,13 @@ export default function Home() {
             <Plus className="h-5 w-5" />
             Add
           </Button>
+          {/* FAB для добавления (только на md+) */}
+          <Button
+            variant="fab"
+            aria-label="Add task or note"
+            onClick={() => setIsModalOpen(true)}
+            className="hidden md:flex"
+          />
         </div>
 
         <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
@@ -143,7 +153,7 @@ export default function Home() {
           <Tab.Panels className="mt-6">
             <Tab.Panel>
               <TaskList
-                tasks={tasks || []}
+                tasks={localTasks || []}
                 onAddTask={() => setIsModalOpen(true)}
                 onDeleteTask={handleDeleteTask}
                 onChangeStatus={handleChangeTaskStatus}
