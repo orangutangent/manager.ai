@@ -117,6 +117,7 @@ export function ModalInput({
             description: "",
             status: "TODO",
             priority: "MEDIUM",
+            steps: [],
             categories: [],
             createdAt: new Date(),
             updatedAt: new Date(),

@@ -138,13 +138,13 @@ export function TaskList({
         </div>
         <Button
           onClick={() => {
-            // Пример временной задачи (можно доработать под твой UI)
             const tempTask = {
               id: "temp-" + Date.now(),
               title: "Новая задача...",
               description: "",
               status: "TODO" as Status,
               priority: "MEDIUM" as Priority,
+              steps: [],
               categories: [],
               createdAt: new Date(),
               updatedAt: new Date(),
