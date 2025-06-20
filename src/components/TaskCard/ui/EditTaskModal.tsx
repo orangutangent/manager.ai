@@ -21,6 +21,7 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
   const [dueTime, setDueTime] = useState<string>("");
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryInput, setCategoryInput] = useState("");
+  const [steps, setSteps] = useState<string[]>([]);
   const { updateTask, isUpdating } = useUpdateTask();
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
         task.dueTime ? new Date(task.dueTime).toISOString().slice(0, 16) : ""
       );
       setCategories(task.categories || []);
+      setSteps(task.steps || []);
     }
   }, [task]);
 
@@ -181,6 +183,17 @@ export function EditTaskModal({ open, task, onClose }: EditTaskModalProps) {
               </span>
             ))}
           </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="font-medium text-gray-700">Этапы задачи</label>
+          <Input
+            as="textarea"
+            value={steps.join("\n")}
+            onChange={(e) => setSteps(e.target.value.split(/\r?\n/))}
+            placeholder="Split steps with enter..."
+            inputSize="md"
+            className="min-h-[10rem]"
+          />
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isUpdating}>

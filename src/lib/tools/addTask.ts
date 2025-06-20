@@ -5,7 +5,9 @@ import { Priority, Status, Task } from "@prisma/client";
 const AddTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
+  steps: z.array(z.string()).optional(),
   priority: z.nativeEnum(Priority).default(Priority.MEDIUM),
+  difficulty: z.number().min(1).max(5).optional(),
   categories: z.array(z.string()).optional(),
   dueTime: z.coerce.date().optional(),
 });
@@ -19,7 +21,9 @@ export async function addTask(input: AddTaskInput) {
     data: {
       title: validatedInput.title,
       description: validatedInput.description || "",
+      steps: validatedInput.steps || [],
       priority: validatedInput.priority,
+      difficulty: validatedInput.difficulty ?? 3,
       status: Status.TODO,
       categories: validatedInput.categories || [],
       dueTime: validatedInput.dueTime,
@@ -54,6 +58,7 @@ export async function updateTask(
     priority?: Priority;
     difficulty?: number;
     dueTime?: Date | null;
+    steps?: string[];
   }>
 ): Promise<Task> {
   return prisma.task.update({
@@ -65,6 +70,7 @@ export async function updateTask(
       priority: data.priority,
       difficulty: data.difficulty,
       dueTime: data.dueTime,
+      steps: data.steps,
     },
   });
 }

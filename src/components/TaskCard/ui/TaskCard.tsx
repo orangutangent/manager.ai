@@ -37,6 +37,31 @@ const statusColors = {
   DONE: "bg-green-100 text-green-700 border-green-200",
 };
 
+function DifficultyIcon({
+  value,
+  showLabel = false,
+}: {
+  value: number;
+  showLabel?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center align-middle">
+      <span
+        className="text-purple-700 text-xs mr-0.5"
+        aria-label="Difficulty icon"
+      >
+        ⚡️
+      </span>
+      <span className="text-purple-800 font-semibold text-xs">{value}/5</span>
+      {showLabel && (
+        <span className="ml-1 text-xs text-purple-800 font-semibold">
+          Difficulty
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function TaskCard({
   task,
   onEdit,
@@ -203,11 +228,12 @@ export function TaskCard({
               : "Done"}
           </span>
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-            Difficulty: {task.difficulty}
+            <DifficultyIcon value={task.difficulty || 1} />
           </span>
-          {task.categories &&
-            task.categories.length > 0 &&
-            task.categories.map((cat) => (
+        </div>
+        {task.categories && task.categories.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-3">
+            {task.categories.map((cat) => (
               <span
                 key={cat}
                 className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200"
@@ -215,7 +241,8 @@ export function TaskCard({
                 {cat}
               </span>
             ))}
-        </div>
+          </div>
+        )}
         <div className="flex justify-between items-center mt-2">
           <div className="text-sm text-gray-400">
             {format(task.createdAt, "d MMMM yyyy", { locale: ru })}
@@ -281,22 +308,22 @@ export function TaskCard({
                       <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                         {task.description || "No description"}
                       </p>
+                      {task.steps && task.steps.length > 0 && (
+                        <div className="mt-4">
+                          <div className="font-semibold text-gray-800 mb-1">
+                            Этапы задачи:
+                          </div>
+                          <ul className="list-decimal list-inside text-gray-700 text-sm">
+                            {task.steps.map((step, idx) => (
+                              <li key={idx}>{step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-sm">
-                    {task.categories && task.categories.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {task.categories.map((cat) => (
-                          <span
-                            key={cat}
-                            className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
-                          >
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         priorityColors[task.priority]
@@ -321,8 +348,8 @@ export function TaskCard({
                         ? "In Progress"
                         : "Done"}
                     </span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      Difficulty: {task.difficulty}
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                      <DifficultyIcon value={task.difficulty || 1} showLabel />
                     </span>
                     {task.dueTime && (
                       <span
@@ -340,6 +367,19 @@ export function TaskCard({
                       </span>
                     )}
                   </div>
+
+                  {task.categories && task.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {task.categories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
                     <div className="flex items-center gap-4">

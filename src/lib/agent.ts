@@ -41,7 +41,8 @@ export class Agent {
 
   constructor(config: AgentConfig) {
     this.groqApiKey = config.groqApiKey;
-    this.model = config.model || "llama-3.1-8b-instant";
+    this.model = config.model || "llama-3.3-70b-versatile";
+    // this.model = config.model || "llama-3.1-8b-instant";
     this.groq = new Groq({ apiKey: this.groqApiKey });
   }
 
@@ -91,8 +92,8 @@ export class Agent {
         { role: "user", content: text },
       ],
       model: this.model,
-      temperature: 0.1,
-      max_completion_tokens: 512,
+      temperature: 0.6,
+      max_completion_tokens: 1024,
       top_p: 1,
       stream: false,
       stop: null,
@@ -145,9 +146,11 @@ export class Agent {
 
       // Handle "both" case - create both task and note with adapted content
       if (classification.type === "both") {
-        const [taskResult, noteResult] = await Promise.all([
+        const [taskResult, noteResult, steps, difficulty] = await Promise.all([
           this.transformTextToStructured(text, "task"),
           this.transformTextToStructured(text, "note"),
+          this.generateTaskSteps(text),
+          this.getTaskDifficulty(text),
         ]);
         const dueTime = await this.extractDueTimeFromText(text);
         // Create task
@@ -157,8 +160,10 @@ export class Agent {
         await addTask({
           title: taskResult.title,
           description: taskResult.content || "",
+          steps,
           priority:
             (taskResult.priority as "LOW" | "MEDIUM" | "HIGH") || "MEDIUM",
+          difficulty,
           categories,
           dueTime: dueTime ? new Date(dueTime) : undefined,
         });
@@ -175,7 +180,11 @@ export class Agent {
         });
         notesCreated++;
       } else if (classification.type === "task") {
-        const taskResult = await this.transformTextToStructured(text, "task");
+        const [taskResult, steps, difficulty] = await Promise.all([
+          this.transformTextToStructured(text, "task"),
+          this.generateTaskSteps(text),
+          this.getTaskDifficulty(text),
+        ]);
         const dueTime = await this.extractDueTimeFromText(text);
         const categories = await this.getTaskCategories(
           taskResult.title + "\n" + (taskResult.content || "")
@@ -183,8 +192,10 @@ export class Agent {
         await addTask({
           title: taskResult.title,
           description: taskResult.content || "",
+          steps,
           priority:
             (taskResult.priority as "LOW" | "MEDIUM" | "HIGH") || "MEDIUM",
+          difficulty,
           categories,
           dueTime: dueTime ? new Date(dueTime) : undefined,
         });
@@ -311,5 +322,63 @@ export class Agent {
     } catch {
       return null;
     }
+  }
+
+  async generateTaskSteps(text: string): Promise<string[]> {
+    const prompt =
+      'Распиши следующую задачу на этапы (подзадачи). Ответь строго в JSON-массиве строк. Пример: "Сделать проект" → ["Составить план", "Реализовать основные функции", "Протестировать", "Подготовить презентацию"]';
+    const chatCompletion = await this.groq.chat.completions.create({
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: text },
+      ],
+      model: this.model,
+      temperature: 0.5,
+      max_completion_tokens: 512,
+      top_p: 1,
+      stream: false,
+      stop: null,
+    });
+    const content = chatCompletion.choices[0].message.content;
+    try {
+      const steps = JSON.parse(content || "[]");
+      if (Array.isArray(steps) && steps.every((s) => typeof s === "string")) {
+        return steps;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getTaskDifficulty(text: string): Promise<number> {
+    const prompt = `Estimate the difficulty of the following task on a scale from 1 to 5 (1 = very easy, 5 = very hard). Criteria:
+1: Takes less than 10 minutes, requires no special knowledge
+2: Simple task, but requires a bit of time or attention
+3: Standard task, may require planning or several actions
+4: Difficult task, requires skills, time, or coordination
+5: Very difficult task, requires expertise, long work, or high responsibility
+
+Examples:
+- "Buy bread" → 1
+- "Prepare annual financial report" → 5
+- "Prepare a presentation for the team" → 3
+
+Respond strictly with a single digit (1, 2, 3, 4, or 5), no explanations or extra text.
+
+Task: ${text}`;
+    const chatCompletion = await this.groq.chat.completions.create({
+      messages: [{ role: "system", content: prompt }],
+      model: this.model,
+      temperature: 0.2,
+      max_completion_tokens: 2,
+      top_p: 1,
+      stream: false,
+      stop: null,
+    });
+    const content = chatCompletion.choices[0].message.content?.trim();
+    const num = Number(content);
+    if ([1, 2, 3, 4, 5].includes(num)) return num;
+    return 3; // default to medium difficulty
   }
 }

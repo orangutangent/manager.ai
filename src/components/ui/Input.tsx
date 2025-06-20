@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import clsx from "clsx";
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
@@ -46,7 +47,7 @@ export const Input = React.forwardRef<
       props.disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
     );
     return (
-      <div className={cn("w-full", className)}>
+      <div className={cn("w-full")}>
         {label && (
           <label className="block mb-1 text-sm font-medium text-gray-700 select-none">
             {label}
@@ -67,7 +68,11 @@ export const Input = React.forwardRef<
             <textarea
               ref={ref as React.Ref<HTMLTextAreaElement>}
               {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
-              className={baseInputStyles + " resize-none min-h-[80px]"}
+              className={clsx(
+                baseInputStyles,
+                " resize-none min-h-[5rem] ",
+                className
+              )}
             />
           ) : (
             <input
@@ -77,7 +82,7 @@ export const Input = React.forwardRef<
                   ([k]) => k !== "inputSize" && k !== "as"
                 )
               )}
-              className={baseInputStyles}
+              className={clsx(baseInputStyles, className)}
             />
           )}
           {iconRight && (

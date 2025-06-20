@@ -12,6 +12,7 @@ model Task {
   id          String   @id @default(cuid())
   title       String
   description String?
+  steps       String[]
   status      Status   @default(TODO)
   priority    Priority @default(MEDIUM)
   difficulty  Int      @default(1)
